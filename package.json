@@ -1,0 +1,169 @@
+{
+    "name": "freehand-antigravity",
+    "displayName": "FreeHand AntiGravity",
+    "description": "Autonomous AI agent control with quota management, auto-accept, and wake scheduling.",
+    "version": "1.0.0",
+    "publisher": "Jasonzld",
+    "icon": "assets/icon.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Jasonzld/FreeHand-AntiGravity.git"
+    },
+    "author": {
+        "name": "Jasonzld",
+        "url": "https://github.com/Jasonzld"
+    },
+    "engines": {
+        "vscode": "^1.90.0"
+    },
+    "categories": [
+        "Machine Learning",
+        "Other"
+    ],
+    "keywords": [
+        "antigravity",
+        "ai",
+        "automation",
+        "quota",
+        "agent"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "freehand.toggle",
+                "title": "FreeHand: Toggle Automation",
+                "icon": "$(zap)"
+            },
+            {
+                "command": "freehand.openSettings",
+                "title": "FreeHand: Open Settings",
+                "icon": "$(gear)"
+            },
+            {
+                "command": "freehand.refreshQuota",
+                "title": "FreeHand: Refresh Quota",
+                "icon": "$(sync)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "freehand.toggle",
+                "key": "ctrl+shift+f",
+                "mac": "cmd+shift+f"
+            },
+            {
+                "command": "freehand.openSettings",
+                "key": "ctrl+shift+,",
+                "mac": "cmd+shift+,"
+            }
+        ],
+        "configuration": {
+            "title": "FreeHand AntiGravity",
+            "properties": {
+                "freehand.autoAccept.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable auto-accept file edits"
+                },
+                "freehand.autoRun.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable auto-execute terminal commands"
+                },
+                "freehand.autoRetry.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable auto-retry on errors"
+                },
+                "freehand.multiTab.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable multi-tab mode (monitor all agent tabs)"
+                },
+                "freehand.quota.refreshInterval": {
+                    "type": "number",
+                    "default": 120,
+                    "minimum": 30,
+                    "maximum": 3600,
+                    "description": "Quota refresh interval in seconds"
+                },
+                "freehand.quota.warningThreshold": {
+                    "type": "number",
+                    "default": 30,
+                    "minimum": 5,
+                    "maximum": 80,
+                    "description": "Warning threshold percentage"
+                },
+                "freehand.wake.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable wake scheduler"
+                },
+                "freehand.wake.startTime": {
+                    "type": "string",
+                    "default": "09:00",
+                    "description": "Wake start time (HH:MM)"
+                },
+                "freehand.wake.endTime": {
+                    "type": "string",
+                    "default": "18:00",
+                    "description": "Wake end time (HH:MM)"
+                },
+                "freehand.wake.workDays": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    },
+                    "default": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "description": "Work days (0=Sunday, 1=Monday, ...)"
+                },
+                "freehand.safety.blocklist": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "rm -rf /",
+                        "rm -rf ~",
+                        "format c:",
+                        "del /f /s /q",
+                        ":(){:|:&};:"
+                    ],
+                    "description": "Blocked command patterns"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "build": "npm run compile",
+        "build:prod": "tsc -p ./ && esbuild ./out/extension.js --bundle --outfile=./dist/extension.js --external:vscode --platform=node --format=cjs --minify",
+        "vscode:prepublish": "npm run build:prod",
+        "package": "npx @vscode/vsce package",
+        "lint": "eslint src --ext ts"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@types/vscode": "^1.90.0",
+        "@types/ws": "^8.5.0",
+        "@typescript-eslint/eslint-plugin": "^7.0.0",
+        "@typescript-eslint/parser": "^7.0.0",
+        "esbuild": "^0.27.0",
+        "eslint": "^8.57.0",
+        "typescript": "^5.3.0"
+    },
+    "dependencies": {
+        "ws": "^8.13.0"
+    }
+}

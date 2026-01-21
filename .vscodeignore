@@ -1,0 +1,9 @@
+.vscode/**
+.vscode-test/**
+src/**
+node_modules/**
+*.ts
+!out/**
+tsconfig.json
+.eslintrc.json
+.prettierrc
