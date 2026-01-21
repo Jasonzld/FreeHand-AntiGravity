@@ -50,13 +50,46 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             );
         }),
 
+        // Cycle state: OFF → ON (Single) → ON (Multi) → OFF
+        vscode.commands.registerCommand('freehand.cycleState', async () => {
+            const cfg = configService.getAll();
+            const isEnabled = cfg.autoAccept.enabled || cfg.autoRun.enabled;
+            const isMultiTab = cfg.multiTab.enabled;
+
+            if (!isEnabled) {
+                // OFF → ON (Single Tab)
+                await configService.set('autoAccept.enabled', true);
+                await configService.set('autoRun.enabled', true);
+                await configService.set('multiTab.enabled', false);
+                logger.info('Cycled to: ON (Single Tab)');
+                vscode.window.showInformationMessage('⚡ FreeHand: ON (Single Tab)');
+                await autoClicker.start();
+            } else if (!isMultiTab) {
+                // ON (Single) → ON (Multi-Tab)
+                await configService.set('multiTab.enabled', true);
+                logger.info('Cycled to: ON (Multi-Tab)');
+                vscode.window.showInformationMessage('⚡ FreeHand: ON (Multi-Tab)');
+            } else {
+                // ON (Multi-Tab) → OFF
+                await configService.set('autoAccept.enabled', false);
+                await configService.set('autoRun.enabled', false);
+                await configService.set('multiTab.enabled', false);
+                logger.info('Cycled to: OFF');
+                vscode.window.showInformationMessage('⚡ FreeHand: OFF');
+                autoClicker.stop();
+            }
+
+            statusBar.update();
+        }),
+
         vscode.commands.registerCommand('freehand.openSettings', () => {
             settingsPanel = SettingsPanel.createOrShow(context, configService, quotaService);
         }),
 
         vscode.commands.registerCommand('freehand.refreshQuota', async () => {
             statusBar.setLoading();
-            await quotaService.refresh();
+            const quota = await quotaService.refresh();
+            statusBar.updateQuota(quota.percentage);
             statusBar.update();
             logger.info('Quota refreshed');
         })

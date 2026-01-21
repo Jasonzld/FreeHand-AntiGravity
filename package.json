@@ -39,6 +39,11 @@
                 "icon": "$(zap)"
             },
             {
+                "command": "freehand.cycleState",
+                "title": "FreeHand: Cycle State (OFF → Single → Multi)",
+                "icon": "$(zap)"
+            },
+            {
                 "command": "freehand.openSettings",
                 "title": "FreeHand: Open Settings",
                 "icon": "$(gear)"

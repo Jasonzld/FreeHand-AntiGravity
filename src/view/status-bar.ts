@@ -1,6 +1,6 @@
 /**
  * Status Bar Controller
- * Manages the status bar item display
+ * Manages the status bar item display with click-to-cycle functionality
  */
 
 import * as vscode from 'vscode';
@@ -11,17 +11,18 @@ export class StatusBarController {
     private statusBarItem: vscode.StatusBarItem;
     private config: ConfigService;
     private state: 'off' | 'on' | 'multi' | 'loading' | 'error' = 'off';
+    private quotaPercent: number = 100;
 
     constructor(context: vscode.ExtensionContext, config: ConfigService) {
         this.config = config;
 
-        // Create status bar item
+        // Create status bar item with high priority (appears on right side)
         this.statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Right,
             100
         );
-        this.statusBarItem.command = 'freehand.toggle';
-        this.statusBarItem.tooltip = 'Click to toggle FreeHand automation';
+        // Use cycleState command for click-to-cycle behavior
+        this.statusBarItem.command = 'freehand.cycleState';
 
         context.subscriptions.push(this.statusBarItem);
         this.statusBarItem.show();
@@ -36,7 +37,6 @@ export class StatusBarController {
         const isMultiTab = cfg.multiTab.enabled;
 
         if (this.state === 'loading') {
-            // Don't update while loading
             return;
         }
 
@@ -57,6 +57,11 @@ export class StatusBarController {
         this.updateTooltip();
     }
 
+    updateQuota(percent: number): void {
+        this.quotaPercent = percent;
+        this.updateTooltip();
+    }
+
     setLoading(): void {
         this.state = 'loading';
         this.statusBarItem.text = `${ICONS.LOADING} Loading...`;
@@ -72,18 +77,44 @@ export class StatusBarController {
 
     private updateTooltip(): void {
         const cfg = this.config.getAll();
-        const lines: string[] = [
-            '**FreeHand AntiGravity**',
-            '',
-            `• Auto-Accept: ${cfg.autoAccept.enabled ? '✅' : '❌'}`,
-            `• Auto-Run: ${cfg.autoRun.enabled ? '✅' : '❌'}`,
-            `• Auto-Retry: ${cfg.autoRetry.enabled ? '✅' : '❌'}`,
-            `• Multi-Tab: ${cfg.multiTab.enabled ? '✅' : '❌'}`,
-            '',
-            'Click to toggle | Right-click for settings',
-        ];
+        const md = new vscode.MarkdownString();
+        md.isTrusted = true;
+        md.supportHtml = true;
 
-        this.statusBarItem.tooltip = new vscode.MarkdownString(lines.join('\n'));
+        // Header with current state
+        const stateText = this.state === 'off' ? 'OFF'
+            : this.state === 'multi' ? 'ON (Multi-Tab)'
+                : 'ON (Single Tab)';
+
+        md.appendMarkdown(`**FreeHand AntiGravity:** ${stateText}\n\n`);
+
+        // Cycle action hint
+        const nextAction = this.state === 'off'
+            ? 'Click → Enable (Single Tab)'
+            : this.state === 'on'
+                ? 'Click → Multi-Tab Mode'
+                : 'Click → Disable';
+
+        md.appendMarkdown(`→ ${nextAction}\n\n`);
+
+        // Quick status
+        md.appendMarkdown('---\n\n');
+        md.appendMarkdown(`📊 Quota: **${this.quotaPercent}%**\n\n`);
+
+        // Feature status with icons
+        md.appendMarkdown(`${cfg.autoAccept.enabled ? '✅' : '⬜'} Auto-Accept  `);
+        md.appendMarkdown(`${cfg.autoRun.enabled ? '✅' : '⬜'} Auto-Run  `);
+        md.appendMarkdown(`${cfg.autoRetry.enabled ? '✅' : '⬜'} Auto-Retry\n\n`);
+
+        // Settings link
+        md.appendMarkdown('---\n\n');
+        md.appendMarkdown('[⚙️ Open Settings](command:freehand.openSettings)');
+
+        this.statusBarItem.tooltip = md;
+    }
+
+    getState(): 'off' | 'on' | 'multi' | 'loading' | 'error' {
+        return this.state;
     }
 
     dispose(): void {
