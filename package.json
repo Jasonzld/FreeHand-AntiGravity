@@ -57,13 +57,18 @@
         "keybindings": [
             {
                 "command": "freehand.toggle",
-                "key": "ctrl+shift+f",
-                "mac": "cmd+shift+f"
+                "key": "alt+shift+a",
+                "mac": "alt+shift+a"
             },
             {
                 "command": "freehand.openSettings",
-                "key": "ctrl+shift+,",
-                "mac": "cmd+shift+,"
+                "key": "alt+shift+s",
+                "mac": "alt+shift+s"
+            },
+            {
+                "command": "freehand.cycleState",
+                "key": "alt+shift+z",
+                "mac": "alt+shift+z"
             }
         ],
         "configuration": {

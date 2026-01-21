@@ -57,9 +57,10 @@ antigravity --install-extension freehand-antigravity-1.0.0.vsix
 
 ### Keyboard Shortcuts
 | Shortcut | Action |
-| :--- | :--- |
-| `Ctrl+Shift+F` | Toggle automation |
-| `Ctrl+Shift+,` | Open settings |
+|:---------|:-------|
+| `Alt+Shift+A` | Toggle automation |
+| `Alt+Shift+Z` | Cycle state (OFF → Single → Multi) |
+| `Alt+Shift+S` | Open settings |
 
 ---
 
