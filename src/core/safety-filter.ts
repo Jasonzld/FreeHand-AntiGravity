@@ -1,13 +1,24 @@
 /**
  * Safety Filter
- * Blocks dangerous commands from being auto-executed
+ * Manages blocklist for dangerous commands
  */
 
 import { ConfigService } from '../shared/config';
-import { DEFAULT_BLOCKLIST } from '../shared/constants';
 
 export class SafetyFilter {
     private config: ConfigService;
+    private defaultBlocklist = [
+        'rm -rf /',
+        'rm -rf ~',
+        'format c:',
+        'del /f /s /q',
+        ':(){:|:&};:',
+        'mkfs.',
+        'dd if=/dev/zero',
+        '> /dev/sda',
+        'wget | sh',
+        'curl | sh',
+    ];
 
     constructor(config: ConfigService) {
         this.config = config;
@@ -17,71 +28,58 @@ export class SafetyFilter {
      * Get the current blocklist
      */
     getBlocklist(): string[] {
-        const custom = this.config.get<string[]>('safety.blocklist');
-        return custom && custom.length > 0 ? custom : DEFAULT_BLOCKLIST;
+        const userList = this.config.get<string[]>('safety.blocklist');
+        if (userList && userList.length > 0) {
+            return userList;
+        }
+        return this.defaultBlocklist;
     }
 
     /**
-     * Check if a command is blocked
+     * Check if a command contains blocked patterns
      */
     isBlocked(command: string): boolean {
-        const blocklist = this.getBlocklist();
+        if (!command) return false;
+
         const lowerCommand = command.toLowerCase();
+        const blocklist = this.getBlocklist();
 
         for (const pattern of blocklist) {
-            const lowerPattern = pattern.toLowerCase().trim();
-            if (!lowerPattern) continue;
-
-            // Check for regex pattern
-            if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
-                try {
-                    const lastSlash = pattern.lastIndexOf('/');
-                    const regexPattern = pattern.substring(1, lastSlash);
-                    const flags = pattern.substring(lastSlash + 1) || 'i';
-                    const regex = new RegExp(regexPattern, flags);
-                    if (regex.test(command)) {
-                        return true;
-                    }
-                } catch {
-                    // Invalid regex, fall back to literal match
-                    if (lowerCommand.includes(lowerPattern)) {
-                        return true;
-                    }
-                }
-            } else {
-                // Literal match
-                if (lowerCommand.includes(lowerPattern)) {
-                    return true;
-                }
+            if (lowerCommand.includes(pattern.toLowerCase())) {
+                return true;
             }
+        }
+
+        // Additional safety checks
+        if (this.containsDangerousPatterns(lowerCommand)) {
+            return true;
         }
 
         return false;
     }
 
     /**
-     * Add a pattern to the blocklist
+     * Additional pattern-based checks
      */
-    async addToBlocklist(pattern: string): Promise<void> {
-        const current = this.getBlocklist();
-        if (!current.includes(pattern)) {
-            await this.config.set('safety.blocklist', [...current, pattern]);
-        }
+    private containsDangerousPatterns(command: string): boolean {
+        const dangerousPatterns = [
+            /rm\s+(-[rf]+\s+)*\/(?!\w)/,      // rm -rf /
+            /mkfs\.\w+\s+\/dev/,              // mkfs.* /dev/*
+            /dd\s+.*of=\/dev\/\w+/,           // dd of=/dev/*
+            /:\s*\(\s*\)\s*{\s*:\s*\|/,       // Fork bomb
+            />\s*\/dev\/sd[a-z]/,             // Overwrite disk
+            /curl.*\|\s*(?:ba)?sh/,           // Pipe to shell
+            /wget.*\|\s*(?:ba)?sh/,           // Pipe to shell
+        ];
+
+        return dangerousPatterns.some(pattern => pattern.test(command));
     }
 
     /**
-     * Remove a pattern from the blocklist
+     * Check if action type should be safety filtered
      */
-    async removeFromBlocklist(pattern: string): Promise<void> {
-        const current = this.getBlocklist();
-        const updated = current.filter(p => p !== pattern);
-        await this.config.set('safety.blocklist', updated);
-    }
-
-    /**
-     * Reset blocklist to default
-     */
-    async resetBlocklist(): Promise<void> {
-        await this.config.set('safety.blocklist', DEFAULT_BLOCKLIST);
+    shouldFilterAction(actionType: 'accept' | 'run' | 'retry'): boolean {
+        // Only filter 'run' actions which execute commands
+        return actionType === 'run';
     }
 }

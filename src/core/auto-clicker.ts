@@ -27,6 +27,9 @@ export class AutoClicker {
     private isRunning = false;
     private pollInterval: NodeJS.Timeout | null = null;
     private messageId = 0;
+    private reconnectAttempts = 0;
+    private maxReconnectAttempts = 5;
+    private reconnectDelay = 3000;
 
     constructor(config: ConfigService, logger: Logger) {
         this.config = config;
@@ -42,13 +45,14 @@ export class AutoClicker {
 
         this.logger.info('AutoClicker starting...');
         this.isRunning = true;
+        this.reconnectAttempts = 0;
 
         try {
             await this.connect();
             this.startPolling();
         } catch (error) {
             this.logger.error('Failed to start AutoClicker', error);
-            this.isRunning = false;
+            this.scheduleReconnect();
         }
     }
 
@@ -95,9 +99,35 @@ export class AutoClicker {
 
     private disconnect(): void {
         if (this.ws) {
+            this.ws.removeAllListeners();
             this.ws.close();
             this.ws = null;
         }
+    }
+
+    private scheduleReconnect(): void {
+        if (!this.isRunning) return;
+
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            this.logger.error(`Max reconnect attempts (${this.maxReconnectAttempts}) reached, stopping`);
+            this.isRunning = false;
+            return;
+        }
+
+        const delay = this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts);
+        this.reconnectAttempts++;
+        this.logger.info(`Reconnecting in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts})`);
+
+        setTimeout(async () => {
+            if (!this.isRunning) return;
+            try {
+                await this.connect();
+                this.reconnectAttempts = 0;
+                this.logger.info('Reconnected successfully');
+            } catch {
+                this.scheduleReconnect();
+            }
+        }, delay);
     }
 
     private async sendCDP(method: string, params?: Record<string, unknown>): Promise<unknown> {
@@ -132,6 +162,14 @@ export class AutoClicker {
 
         this.pollInterval = setInterval(async () => {
             if (!this.isRunning) {
+                return;
+            }
+
+            // Check WebSocket connection
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                this.logger.warn('WebSocket disconnected, attempting reconnect...');
+                this.stopPolling();
+                this.scheduleReconnect();
                 return;
             }
 

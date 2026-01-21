@@ -369,13 +369,13 @@ export class SettingsPanel {
         
         // Blocklist
         document.getElementById('saveBlocklist').addEventListener('click', () => {
-            const list = document.getElementById('blocklist').value.split('\\n').filter(l => l.trim());
+            const list = document.getElementById('blocklist').value.split('\n').filter(l => l.trim());
             vscode.postMessage({ command: 'updateConfig', key: 'safety.blocklist', value: list });
         });
         
         document.getElementById('resetBlocklist').addEventListener('click', () => {
             const defaults = ['rm -rf /', 'rm -rf ~', 'format c:', 'del /f /s /q', ':(){:|:&};:'];
-            document.getElementById('blocklist').value = defaults.join('\\n');
+            document.getElementById('blocklist').value = defaults.join('\n');
             vscode.postMessage({ command: 'updateConfig', key: 'safety.blocklist', value: defaults });
         });
         
